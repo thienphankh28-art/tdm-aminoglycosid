@@ -126,10 +126,14 @@ with tab1:
     p_def = st.session_state.loaded_patient or {}
     t_def = st.session_state.loaded_tdm or {}
     
-    default_weight = p_def.get("weight", 81.0)
+    # Ép kiểu rõ ràng sang float để tránh lỗi lệch kiểu dữ liệu với min_value
+    default_weight = float(p_def.get("weight", 81.0))
+    default_height = float(p_def.get("height", 180.34))
+    default_age = float(p_def.get("age", 67.0))
+    
     default_dose_mg_kg = 5.3
     if t_def.get("new_dose") and default_weight > 0:
-        default_dose_mg_kg = round(t_def.get("new_dose") / default_weight, 2)
+        default_dose_mg_kg = float(round(float(t_def.get("new_dose")) / default_weight, 2))
 
     st.header("1. Thông tin bệnh nhân")
     c1, c2, c3 = st.columns(3)
@@ -138,9 +142,9 @@ with tab1:
         gender_index = 0 if p_def.get("gender", "nam") == "nam" else 1
         gender = st.selectbox("Giới tính", ["nam", "nữ"], index=gender_index)
         weight_kg = st.number_input("Cân nặng (kg)", value=default_weight, min_value=0.1)
-        height_cm = st.number_input("Chiều cao (cm)", value=p_def.get("height", 180.34), min_value=1.0)
+        height_cm = st.number_input("Chiều cao (cm)", value=default_height, min_value=1.0)
     with c2:
-        age = st.number_input("Tuổi", value=p_def.get("age", 67.0), min_value=0.0)
+        age = st.number_input("Tuổi", value=default_age, min_value=0.0)
         is_cf = st.checkbox("Đối tượng: Xơ nang (Cystic Fibrosis)", value=bool(p_def.get("is_cf", True)))
     with c3:
         dose_mg_per_kg = st.number_input("Liều AG (mg/kg)", value=default_dose_mg_kg)
