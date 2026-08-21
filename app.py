@@ -1,6 +1,6 @@
 """
 app.py — Giao diện phần mềm TDM Aminoglycosid (Streamlit)
-Đã chuyển toàn bộ dữ liệu bệnh nhân lên Supabase Cloud, tích hợp phiên bản và bản quyền.
+Đã chuyển toàn bộ dữ liệu bệnh nhân lên Supabase Cloud, tích hợp phiên bản và bản quyền vào Tab riêng.
 """
 import streamlit as st
 import pandas as pd
@@ -8,6 +8,8 @@ import numpy as np
 import plotly.graph_objects as go
 import datetime
 import io
+import json
+import os
 
 import database as db
 from pk_calculations import (
@@ -69,7 +71,7 @@ if not st.session_state.logged_in:
 # GIAO DIỆN CHÍNH (SAU KHI ĐÃ ĐĂNG NHẬP)
 # =============================================================================
 
-# Sidebar hiển thị thông tin tài khoản, bản quyền và phiên bản
+# Sidebar gọn gàng chỉ hiển thị thông tin tài khoản và đăng xuất
 with st.sidebar:
     st.markdown("### 👤 Thông tin tài khoản")
     st.write(f"**Họ tên:** {st.session_state.fullname}")
@@ -86,13 +88,6 @@ with st.sidebar:
         st.session_state.fullname = ""
         st.rerun()
 
-    st.markdown("---")
-    st.markdown("### ℹ️ Thông tin phần mềm")
-    st.markdown("**Phần mềm TDM Aminoglycosid**")
-    st.markdown("Phiên bản: `V.21.8.2026`")
-    st.markdown("Bản quyền sở hữu:")
-    st.markdown("📧 `thienphankh28@gmail.com`")
-
 # Session State Initialization cho phần tính toán
 if "loaded_patient" not in st.session_state:
     st.session_state.loaded_patient = None
@@ -105,7 +100,8 @@ if "sec4_calcs" not in st.session_state:
 
 st.title("💊 Phần mềm TDM Aminoglycosid")
 
-tab1, tab2 = st.tabs(["🧮 Tính toán & TDM", "🗂 CSDL Bệnh nhân (Cloud)"])
+# Định nghĩa 3 Tab chính của phần mềm
+tab1, tab2, tab3 = st.tabs(["🧮 Tính toán & TDM", "🗂 CSDL Bệnh nhân (Cloud)", "ℹ️ Thông tin phần mềm"])
 
 with tab1:
     st.subheader("🔍 Truy xuất bệnh nhân từ Cloud")
@@ -126,7 +122,6 @@ with tab1:
     p_def = st.session_state.loaded_patient or {}
     t_def = st.session_state.loaded_tdm or {}
     
-    # Ép kiểu rõ ràng toàn bộ các giá trị mặc định sang float an toàn
     default_weight = float(p_def.get("weight", 70.0))
     default_height = float(p_def.get("height", 170.0))
     default_age = float(p_def.get("age", 50.0))
@@ -149,7 +144,6 @@ with tab1:
         is_cf = st.checkbox("Đối tượng: Xơ nang (Cystic Fibrosis)", value=bool(p_def.get("is_cf", True)))
     with c3:
         dose_mg_per_kg = st.number_input("Liều AG (mg/kg)", value=default_dose_mg_kg)
-        # Bọc float() tránh lỗi lệch kiểu int/float với min_value
         infusion_time_h = st.number_input("Thời gian truyền ban đầu (h, t')", value=float(t_def.get("new_t_inf", 1.0)), min_value=0.1)
         tau_h = st.number_input("Khoảng đưa liều hiện tại (h)", value=float(t_def.get("new_tau", 24.0)), min_value=1.0)
 
@@ -338,3 +332,36 @@ with tab2:
                 st.info("Bệnh nhân này chưa có lịch sử TDM trên Cloud.")
         else:
             st.error("Không tìm thấy bệnh nhân với MSYT vừa nhập trên Cloud.")
+
+# =============================================================================
+# TAB 3 — THÔNG TIN PHẦN MỀM & BẢN QUYỀN
+# =============================================================================
+with tab3:
+    st.header("ℹ️ Thông tin phần mềm & Bản quyền")
+    
+    # Đọc tự động phiên bản từ file version.json nếu có ở local, nếu không lấy mặc định
+    version_str = "V.1.0.2"
+    if os.path.exists("version.json"):
+        try:
+            with open("version.json", "r", encoding="utf-8") as f:
+                v_data = json.load(f)
+                version_str = v_data.get("version", version_str)
+        except Exception:
+            pass
+
+    st.markdown(f"""
+    ### 💊 Phần mềm TDM Aminoglycosid
+    * **Phiên bản hiện tại:** `{version_str}`
+    * **Bản quyền sở hữu và phát triển:** `thienphankh28@gmail.com`
+    * **Cơ sở dữ liệu:** Supabase Cloud Database
+
+    ---
+    ### 📖 Hướng dẫn sử dụng nhanh
+    1. **Tab Tính toán & TDM**: 
+       * Nhập thông tin hành chính bệnh nhân và thông số quần thể.
+       * Thực hiện tính toán cá thể hóa dựa trên 2 mức nồng độ máu ($C_1, C_2$).
+       * Hiệu chỉnh liều mới, xem trực quan biểu đồ nồng độ tích lũy qua 10 chu kỳ liều và lưu dữ liệu an toàn lên Cloud.
+    2. **Tab CSDL Bệnh nhân (Cloud)**: 
+       * Tra cứu toàn bộ thông tin và lịch sử điều trị TDM của bệnh nhân theo Mã số y tế (MSYT).
+       * Hỗ trợ xóa từng block TDM theo ngày hoặc xóa toàn bộ hồ sơ bệnh nhân trên hệ thống đám mây khi cần thiết.
+    """)
