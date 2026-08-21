@@ -126,10 +126,10 @@ with tab1:
     p_def = st.session_state.loaded_patient or {}
     t_def = st.session_state.loaded_tdm or {}
     
-    # Ép kiểu rõ ràng sang float để tránh lỗi lệch kiểu dữ liệu với min_value
-    default_weight = float(p_def.get("weight", 81.0))
-    default_height = float(p_def.get("height", 180.34))
-    default_age = float(p_def.get("age", 67.0))
+    # Ép kiểu rõ ràng toàn bộ các giá trị mặc định sang float an toàn
+    default_weight = float(p_def.get("weight", 70.0))
+    default_height = float(p_def.get("height", 170.0))
+    default_age = float(p_def.get("age", 50.0))
     
     default_dose_mg_kg = 5.3
     if t_def.get("new_dose") and default_weight > 0:
@@ -141,6 +141,7 @@ with tab1:
         msyt_input = st.text_input("MSYT (Bắt buộc để lưu)", value=p_def.get("msyt", lookup_msyt))
         gender_index = 0 if p_def.get("gender", "nam") == "nam" else 1
         gender = st.selectbox("Giới tính", ["nam", "nữ"], index=gender_index)
+        
         weight_kg = st.number_input("Cân nặng (kg)", value=default_weight, min_value=0.1)
         height_cm = st.number_input("Chiều cao (cm)", value=default_height, min_value=1.0)
     with c2:
@@ -148,14 +149,15 @@ with tab1:
         is_cf = st.checkbox("Đối tượng: Xơ nang (Cystic Fibrosis)", value=bool(p_def.get("is_cf", True)))
     with c3:
         dose_mg_per_kg = st.number_input("Liều AG (mg/kg)", value=default_dose_mg_kg)
-        infusion_time_h = st.number_input("Thời gian truyền ban đầu (h, t')", value=t_def.get("new_t_inf", 1.0), min_value=0.1)
-        tau_h = st.number_input("Khoảng đưa liều hiện tại (h)", value=t_def.get("new_tau", 24.0), min_value=1.0)
+        # Bọc float() tránh lỗi lệch kiểu int/float với min_value
+        infusion_time_h = st.number_input("Thời gian truyền ban đầu (h, t')", value=float(t_def.get("new_t_inf", 1.0)), min_value=0.1)
+        tau_h = st.number_input("Khoảng đưa liều hiện tại (h)", value=float(t_def.get("new_tau", 24.0)), min_value=1.0)
 
     c4, c5 = st.columns(2)
     with c4:
-        target_cp = st.number_input("Cp kỳ vọng (μg/mL)", value=t_def.get("pred_cp", 20.0))
+        target_cp = st.number_input("Cp kỳ vọng (μg/mL)", value=float(t_def.get("pred_cp", 20.0)))
     with c5:
-        target_ctrough = st.number_input("Ctr kỳ vọng (μg/mL)", value=t_def.get("pred_ctrough", 1.0))
+        target_ctrough = st.number_input("Ctr kỳ vọng (μg/mL)", value=float(t_def.get("pred_ctrough", 1.0)))
 
     patient = PatientInfo(gender, height_cm, weight_kg, 100.0, age, is_cf)
     bmi = compute_bmi(patient)
@@ -177,7 +179,7 @@ with tab1:
     with t1:
         tdm_date = st.date_input("Ngày thực hiện TDM", value=datetime.date.today())
     with t2_col:
-        current_scr = st.number_input("Scr ngày TDM (μmol/L)", value=t_def.get("scr", 80.0), min_value=0.1)
+        current_scr = st.number_input("Scr ngày TDM (μmol/L)", value=float(t_def.get("scr", 80.0)), min_value=0.1)
     
     is_first_dose = st.checkbox("Liều ĐẦU TIÊN (chưa tích luỹ)", value=False)
     dose_given_mg = st.number_input("Tổng liều đã dùng khi lấy mẫu (mg)", value=float(round(total_dose, 2)))
